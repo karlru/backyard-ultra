@@ -9,7 +9,7 @@ CURRENT_WORLD_RECORD = 101
 
 # loeme andmed sisse ja puhastame/mudime neid
 data = read.csv(
-  '/Users/karl/projektid/kool/sav/projekt/team_world_22.csv', 
+  'data/team_world_22.csv', 
   header = FALSE,
   sep='\t'
 )
@@ -66,6 +66,7 @@ ui <- fluidPage(
         br(),
         br(),
         br(),
+        p(a(href='https://github.com/karlru/backyard-ultra', 'Lähtekood', target='_blank')),
         p('Karl Kevin Ruul, 2023, aine Statistiline andmeteadus ja visualiseerimine (MTMS.01.100) raames', style="color:darkgray")
       ),
       tabPanel(
@@ -141,6 +142,7 @@ ui <- fluidPage(
       tabPanel(
         'Viited/andmed',
         h3('Viited'),
+        p(a(href='https://github.com/karlru/backyard-ultra', 'Lähtekood', target='_blank')),
         p(a(href='https://backyardultra.com/', 'Rohkem infot backyard ultra kohta', target='_blank')),
         p(a(href='https://docs.google.com/spreadsheets/d/1V5zS1D-LAZwKeO-ERd9gHkHjJ4nmRlt-9IKn7OgDup8/edit#gid=1600265888', 'World Team Championship 2022 andmed')),
         h3('Andmed'),
