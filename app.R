@@ -8,12 +8,11 @@ library(dplyr)
 CURRENT_WORLD_RECORD = 101
 
 # loeme andmed sisse ja puhastame/mudime neid
-data = read.csv(
-  'data/team_world_22.csv', 
-  header = FALSE,
-  sep='\t'
-)
-colnames(data) = c('pos', 'competition', 'name', 'final', 'yards', 'country', 'country_pos', 'gender', 'age', sprintf("yard%s",seq(1:102)))
+data = list.files(path='data', pattern = '*.csv', full.names = TRUE) %>% 
+  lapply(function (f) read.csv(f, header = FALSE, sep = '\t')) %>% 
+  bind_rows
+
+colnames(data) = c('pos', 'competition', 'name', 'country', 'club', 'yards', 'gender', sprintf("yard%s",seq(1:102)))
 data[data == 'DNC' | data == 'RTC' | data == 'Over'] = ''
 data[data == ''] = NA
 
@@ -144,27 +143,31 @@ ui <- fluidPage(
         h3('Viited'),
         p(a(href='https://github.com/karlru/backyard-ultra', 'Lähtekood', target='_blank')),
         p(a(href='https://backyardultra.com/', 'Rohkem infot backyard ultra kohta', target='_blank')),
-        p(a(href='https://docs.google.com/spreadsheets/d/1V5zS1D-LAZwKeO-ERd9gHkHjJ4nmRlt-9IKn7OgDup8/edit#gid=1600265888', 'World Team Championship 2022 andmed')),
+        p(a(href='https://docs.google.com/spreadsheets/d/1V5zS1D-LAZwKeO-ERd9gHkHjJ4nmRlt-9IKn7OgDup8/edit#gid=1600265888', 'World Team Championship 2022 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/127933/#0_D25492', 'Heavy Metal Ultra 2019 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/156449/#0_D25492', 'Heaby Metal Ultra 2020 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/176674/#0_D25492', 'Heaby Metal Ultra 2021 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/214177/#0_D25492', 'Heaby Metal Ultra 2022 andmed', target='_blank')),
         h3('Andmed'),
         p('Tulevikus oleks väga tore, kui siia saaks ka jooksvalt toimunud ürituste andmeid lisada. Selle jaoks toon siin välja, millisel kujul on praegu kasutusel olevad andmed.'),
-        p('Andmed loetakse sisse tabiga eraldatud csv failidest, kus igal real on 111 tunnust:'),
+        p('Andmed loetakse sisse tabiga eraldatud csv failidest, kus igal real on 109 tunnust:'),
         tags$ul(
-          tags$li('rea number/koht võistlusel'),
+          tags$li('koht võistlusel'),
           tags$li('võistluse nimi'),
           tags$li('võistleja nimi'),
-          tags$li('täiesti suvakas binaarne tunnus, mis tuli esmaste andmetega kaasa, ei ütle mulle mitte midagi ja mille ma millegi pärast sisse jätsin'),
+          tags$li('võistleja riik'),
+          tags$li('võistleja klubi'),
           tags$li('läbitud ringide arv'),
-          tags$li('klubi/riik'),
-          tags$li('koht klubi- või riigisiseselt'),
           tags$li('sugu (M/F)'),
-          tags$li('vanus'),
           tags$li('esimese ringi aeg'),
           tags$li('teise ringi aeg'),
           tags$li('...'),
           tags$li('sajaesimese ringi aeg'),
           tags$li('sajateise ringi aeg')
         ),
-        p('Ringide ajad on kujul mm:ss ning lubatud on ka väärtused DNC (did not complete) ning RTC (refused to continue). Teravam silm võis tähele panna, et andmetes on ka veerg sajateise ringi aja jaoks, kuid maailmarekord on vaid 101 - rekordiomanike sajateise ringi tulemuseks on RTC, ehk nad keeldusid jätkamast.')
+        p('Ringide ajad on kujul mm:ss ning lubatud on ka väärtused DNC (did not complete) ning RTC (refused to continue). Teravam silm võis tähele panna, et andmetes on ka veerg sajateise ringi aja jaoks, kuid maailmarekord on vaid 101 - rekordiomanike sajateise ringi tulemuseks on RTC, ehk nad keeldusid jätkamast.'),
+        p('Näide ühest andmereast:'),
+        tableOutput('exampleDataRow')
       )
     ),
 )
@@ -249,6 +252,15 @@ server <- function(input, output) {
     output$competitorYardStd <- renderText({
       yardAverages = getYardAverages(req(competitorDataSelection()))
       paste('Standardhälve:', round(sd(yardAverages$values), 2))
+    })
+    
+    output$exampleDataRow <- renderTable({
+      data = read.csv(
+        'data/team_world_22.csv', 
+        header = FALSE,
+        sep='\t',
+        nrows=1
+      )
     })
 }
 
