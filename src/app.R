@@ -1,18 +1,22 @@
 library(shiny)
 library(shinyWidgets)
+library(shinydashboard)
 library(stringr)
 library(ggplot2)
 library(lubridate)
 library(dplyr)
 
+DATA_FOLDER = '../data'
 CURRENT_WORLD_RECORD = 101
+COLUMNS = c('pos', 'competition', 'name', 'country', 'club', 'yards', 'gender', 
+            sprintf("yard%s",seq(1:(CURRENT_WORLD_RECORD + 1))))
 
 # loeme andmed sisse ja puhastame/mudime neid
-data = list.files(path='../data', pattern = '*.csv', full.names = TRUE) %>% 
+data = list.files(path=DATA_FOLDER, pattern = '*.csv', full.names = TRUE) %>% 
   lapply(function (f) read.csv(f, header = FALSE, sep = '\t')) %>% 
   bind_rows
 
-colnames(data) = c('pos', 'competition', 'name', 'country', 'club', 'yards', 'gender', sprintf("yard%s",seq(1:102)))
+colnames(data) = COLUMNS
 data[data == 'DNC' | data == 'RTC' | data == 'Over'] = ''
 data[data == ''] = NA
 
@@ -36,6 +40,15 @@ getYardAverages = function(dataSelection) {
     mutate(ind = as.numeric(str_replace(ind, 'yard', '')))
 }
 
+getInputChoices = function(column, sort = FALSE) {
+  choices = unique(data[[column]])
+  if (sort) {
+    choices = sort(choices)
+  }
+  
+  return(choices)
+}
+
 statisticsTab = tabPanel(
   'Võistluste statistika',
   br(),
@@ -45,7 +58,7 @@ statisticsTab = tabPanel(
         pickerInput(
           'competitions', 
           'Vali võistlus', 
-          choices = unique(data$competition), 
+          choices = getInputChoices('competition'), 
           options = list(`actions-box` = TRUE, `live-search` = TRUE), 
           multiple = TRUE,
           selected = unique(data$competition)
@@ -53,7 +66,7 @@ statisticsTab = tabPanel(
         pickerInput(
           'participants', 
           'Vali võistleja', 
-          choices = unique(data$name), 
+          choices = getInputChoices('name', TRUE), 
           options = list(`actions-box` = TRUE, `live-search` = TRUE), 
           multiple = TRUE,
           selected = unique(data$name)
@@ -61,7 +74,7 @@ statisticsTab = tabPanel(
         pickerInput(
           'countries',
           'Vali võistleja päritolu/klubi', 
-          choices = sort(unique(data$country)), 
+          choices = getInputChoices('country', TRUE), 
           options = list(`actions-box` = TRUE, `live-search` = TRUE), 
           multiple = TRUE,
           selected = unique(data$country)
@@ -77,15 +90,19 @@ statisticsTab = tabPanel(
       class = 'sticky'
     ),
     mainPanel(
-      h3('Võistlejate osakaal läbitud ringide järgi'),
+      fluidRow(
+        align = 'center',
+        valueBoxOutput('totalYards'),
+        valueBoxOutput('yardsMean'),
+        valueBoxOutput('totalSweat')
+      ),
+      h3('Läbitud ringide osakaal'),
       p('Eraldi on toodud välja kümne või kaheteistkümnega jaguvad, nii-öelda ümmargused ringid'),
       plotOutput('yardsCompletedPlot'),
       br(),
-      h3('Ringi läbinud võistlejate keskmine ringiaeg'),
-      textOutput('yardAveragesMean'),
-      textOutput('yardAveragesStd'),
+      h3('Keskmised ringiajad'),
       plotOutput('yardAveragesPlot'),
-      h3('Võistleja keskmine jooksmise ning puhkamise aeg'),
+      h3('Keskmised jooksmise-puhkamise vahekorrad'),
       plotOutput('yardSplitPlot'),
       br()
     )
@@ -147,16 +164,16 @@ sourcesTab = tabPanel(
     tags$li('sajateise ringi aeg')
   ),
   p('Ringide ajad on kujul mm:ss ning lubatud on ka väärtused DNC (did not complete) ning RTC (refused to continue). Teravam silm võis tähele panna, et andmetes on ka veerg sajateise ringi aja jaoks, kuid maailmarekord on vaid 101 - rekordiomanike sajateise ringi tulemuseks on RTC, ehk nad keeldusid jätkamast.'),
-  p('Näide ühest andmereast:'),
+  p('Näide andmereast:'),
   tableOutput('exampleDataRow')
 )
 
 ui <- fluidPage(
   
-    titlePanel("Backyard ultra andmeanalüüs"),
-    
-    tags$style(HTML(
-      "@media screen and (min-width: 768px){
+  titlePanel("Backyard ultra andmeanalüüs"),
+  
+  tags$style(HTML(
+    "@media screen and (min-width: 768px){
           div.sticky {
             position: -webkit-sticky;
             position: sticky;
@@ -164,88 +181,96 @@ ui <- fluidPage(
             z-index: 1;
           }
         }"
-    )),
-    
-    tabsetPanel(
-      type = 'tabs',
-      statisticsTab,
-      overviewTab,
-      sourcesTab
-    ),
+  )),
+  
+  tabsetPanel(
+    type = 'tabs',
+    statisticsTab,
+    overviewTab,
+    sourcesTab
+  ),
 )
 
 server <- function(input, output) {
   
-    # filtreeritud andmete kättesaamine
-    dataSelection = reactive({
-        data %>% 
-          filter(
-            name %in% input$participants, 
-            competition %in% input$competitions,
-            country %in% input$countries,
-            gender %in% input$genders
-          )
-      })
-  
-    output$yardsCompletedPlot <- renderPlot({
-      ggplot(data = req(dataSelection()), aes(
-          x = yards, 
-          fill=factor(ifelse(yards %% 10 == 0 | yards %% 12 == 0, 'a', 'b'))
-      )) +
-        geom_bar(aes(y = (..count..)/sum(..count..)))  +
-        labs(y = 'Võistlejate osakaal', x = 'Läbitud ringide arv') +
-        theme(legend.position = 'none')
-    })
-
-    output$yardAveragesPlot <- renderPlot({
-      yardAverages = getYardAverages(req(dataSelection()))
-      
-      ggplot(data = yardAverages, aes(x = ind, y = values, group=1)) + 
-        geom_line() +
-        labs(y = 'Keskmine aeg (min)', x = 'Ringi number') +
-        theme(legend.position = 'none')
-    })
-    
-    output$yardAveragesMean <- renderText({
-      yardAverages = getYardAverages(req(dataSelection()))
-      paste('Keskmine:', round(mean(yardAverages$values), 2))
-    })
-    
-    output$yardAveragesStd <- renderText({
-      yardAverages = getYardAverages(req(dataSelection()))
-      paste('Standardhälve:', round(sd(yardAverages$values), 2))
-    })
-    
-    output$yardSplitPlot <- renderPlot({
-      yardAverages = getYardAverages(req(dataSelection())) %>% 
-        mutate(type = factor('Jooksmine'))
-      restAverages = yardAverages %>% 
-        mutate(
-          values = 60 - values,
-          type = factor('Puhkamine')
-        )
-      
-      averages = rbind(yardAverages, restAverages)
-      # selleks, et jooksmine ees pool oleks
-      averages$type = relevel(averages$type, 'Puhkamine')
-      
-      ggplot(averages, aes(ind, values, fill = type)) +
-        geom_bar(position = "stack", stat = "identity") +
-        coord_flip() +
-        scale_x_reverse() +
-        labs(y = 'Keskmine kulunud aeg (min)', x = 'Ringi number') +
-        theme(legend.title = element_blank()) + 
-        guides(fill = guide_legend(reverse = TRUE))
-    })
-    
-    output$exampleDataRow <- renderTable({
-      data = read.csv(
-        'data/team_world_22.csv', 
-        header = FALSE,
-        sep='\t',
-        nrows=1
+  # filtreeritud andmete kättesaamine
+  dataSelection = reactive({
+    data %>% 
+      filter(
+        name %in% input$participants, 
+        competition %in% input$competitions,
+        country %in% input$countries,
+        gender %in% input$genders
       )
-    })
+  })
+  
+  output$yardsCompletedPlot <- renderPlot({
+    ggplot(data = req(dataSelection()), aes(
+      x = yards, 
+      fill=factor(ifelse(yards %% 10 == 0 | yards %% 12 == 0, 'a', 'b'))
+    )) +
+      geom_bar(aes(y = (..count..)/sum(..count..)))  +
+      labs(y = 'Võistlejate osakaal', x = 'Läbitud ringide arv') +
+      theme(legend.position = 'none')
+  })
+  
+  output$yardAveragesPlot <- renderPlot({
+    yardAverages = getYardAverages(req(dataSelection()))
+    
+    ggplot(data = yardAverages, aes(x = ind, y = values, group=1)) + 
+      geom_line() +
+      labs(y = 'Keskmine aeg (min)', x = 'Ringi number') +
+      theme(legend.position = 'none')
+  })
+  
+  output$yardSplitPlot <- renderPlot({
+    yardAverages = getYardAverages(req(dataSelection())) %>% 
+      mutate(type = factor('Jooksmine'))
+    restAverages = yardAverages %>% 
+      mutate(
+        values = 60 - values,
+        type = factor('Puhkamine')
+      )
+    
+    averages = rbind(yardAverages, restAverages)
+    # selleks, et jooksmine ees pool oleks
+    averages$type = relevel(averages$type, 'Puhkamine')
+    
+    ggplot(averages, aes(ind, values, fill = type)) +
+      geom_bar(position = "stack", stat = "identity") +
+      coord_flip() +
+      scale_x_reverse() +
+      labs(y = 'Keskmine kulunud aeg (min)', x = 'Ringi number') +
+      theme(legend.title = element_blank()) + 
+      guides(fill = guide_legend(reverse = TRUE))
+  })
+  
+  output$totalYards <- renderValueBox({
+    valueBox(sum(dataSelection()$yards), 'analüüsitud ringi')
+  })
+  
+  output$yardsMean <- renderValueBox({
+    totalTime = sum(getYardsData(dataSelection()), na.rm = TRUE)
+    totalYards = sum(dataSelection()$yards)
+    averageYard = totalTime / totalYards
+    minutes = floor(averageYard)
+    seconds = round(averageYard %% 1 * 60)
+    valueBox(paste(minutes, ':', seconds, sep = ''), 'keskmine ringiaeg')
+  })
+  
+  output$totalSweat <- renderValueBox({
+    valueBox('väga palju', 'higi ja pisaraid')
+  })
+  
+  output$exampleDataRow <- renderTable({
+    data = read.csv(
+      paste(DATA_FOLDER, '/team_world_22.csv', sep = ''), 
+      header = FALSE,
+      sep='\t',
+      nrows=1,
+      col.names = COLUMNS
+    )
+  })
 }
 
 shinyApp(ui = ui, server = server)
