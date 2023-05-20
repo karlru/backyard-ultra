@@ -93,14 +93,14 @@ ui <- fluidPage(
                 multiple = TRUE,
                 selected = unique(data$competition)
               ),
-              #pickerInput(
-              #  'participants', 
-              #  'Vali võistleja', 
-              #  choices = unique(data$name), 
-              #  options = list(`actions-box` = TRUE, `live-search` = TRUE), 
-              #  multiple = TRUE,
-              #  selected = unique(data$name)
-              #),
+              pickerInput(
+                'participants', 
+                'Vali võistleja', 
+                choices = unique(data$name), 
+                options = list(`actions-box` = TRUE, `live-search` = TRUE), 
+                multiple = TRUE,
+                selected = unique(data$name)
+              ),
               pickerInput(
                 'countries',
                 'Vali võistleja päritolu/klubi', 
@@ -128,27 +128,9 @@ ui <- fluidPage(
             textOutput('yardAveragesMean'),
             textOutput('yardAveragesStd'),
             plotOutput('yardAveragesPlot'),
-            br()
-          )
-        )
-      ),
-      tabPanel(
-        'Võistleja statistika',
-        br(),
-        
-        sidebarLayout(
-          sidebarPanel(
-            selectInput(
-              'participant',
-              'Vali võistleja',
-              choices = unique(data$name)
-            )
-          ),
-          mainPanel(
             h3('Võistleja keskmine jooksmise ning puhkamise aeg'),
-            textOutput('competitorYardMean'),
-            textOutput('competitorYardStd'),
-            plotOutput('competitorYardsPlot')
+            plotOutput('yardSplitPlot'),
+            br()
           )
         )
       ),
@@ -188,27 +170,19 @@ ui <- fluidPage(
 
 server <- function(input, output) {
   
-    # filtreeritud andmete kättesaamine (võistluste leht)
-    competitionDataSelection = reactive({
+    # filtreeritud andmete kättesaamine
+    dataSelection = reactive({
         data %>% 
           filter(
-            #name %in% input$participants, 
+            name %in% input$participants, 
             competition %in% input$competitions,
             country %in% input$countries,
             gender %in% input$genders
           )
       })
-    
-    # filtreeritud andmete kättesaamine (võistleja leht)
-    competitorDataSelection = reactive({
-      data %>% 
-        filter(
-          name == input$participant
-        )
-    })
   
     output$yardsCompletedPlot <- renderPlot({
-      ggplot(data = req(competitionDataSelection()), aes(
+      ggplot(data = req(dataSelection()), aes(
           x = yards, 
           fill=factor(ifelse(yards %% 10 == 0 | yards %% 12 == 0, 'a', 'b'))
       )) +
@@ -218,7 +192,7 @@ server <- function(input, output) {
     })
 
     output$yardAveragesPlot <- renderPlot({
-      yardAverages = getYardAverages(req(competitionDataSelection()))
+      yardAverages = getYardAverages(req(dataSelection()))
       
       ggplot(data = yardAverages, aes(x = ind, y = values, group=1)) + 
         geom_line() +
@@ -227,17 +201,17 @@ server <- function(input, output) {
     })
     
     output$yardAveragesMean <- renderText({
-      yardAverages = getYardAverages(req(competitionDataSelection()))
+      yardAverages = getYardAverages(req(dataSelection()))
       paste('Keskmine:', round(mean(yardAverages$values), 2))
     })
     
     output$yardAveragesStd <- renderText({
-      yardAverages = getYardAverages(req(competitionDataSelection()))
+      yardAverages = getYardAverages(req(dataSelection()))
       paste('Standardhälve:', round(sd(yardAverages$values), 2))
     })
     
-    output$competitorYardsPlot <- renderPlot({
-      yardAverages = getYardAverages(req(competitorDataSelection())) %>% 
+    output$yardSplitPlot <- renderPlot({
+      yardAverages = getYardAverages(req(dataSelection())) %>% 
         mutate(type = factor('Jooksmine'))
       restAverages = yardAverages %>% 
         mutate(
@@ -256,16 +230,6 @@ server <- function(input, output) {
         labs(y = 'Keskmine kulunud aeg (min)', x = 'Ringi number') +
         theme(legend.title = element_blank()) + 
         guides(fill = guide_legend(reverse = TRUE))
-    })
-    
-    output$competitorYardMean <- renderText({
-      yardAverages = getYardAverages(req(competitorDataSelection()))
-      paste('Keskmine ringiaeg:', round(mean(yardAverages$values), 2))
-    })
-    
-    output$competitorYardStd <- renderText({
-      yardAverages = getYardAverages(req(competitorDataSelection()))
-      paste('Standardhälve:', round(sd(yardAverages$values), 2))
     })
     
     output$exampleDataRow <- renderTable({
