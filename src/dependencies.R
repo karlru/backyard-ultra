@@ -4,7 +4,7 @@ pkgLoad <- function( packages = "needed" ) {
   
   if( length( packages ) == 1L && packages == "needed" ) {
     packages <- c('shiny', 'shinyWidgets', 'shinydashboard', 'stringr',
-                  'ggplot2', 'lubridate', 'dplyr'
+                  'ggplot2', 'lubridate', 'dplyr', 'shinycssloaders'
     )
   }
   

@@ -5,11 +5,13 @@ library(stringr)
 library(ggplot2)
 library(lubridate)
 library(dplyr)
+library(shinycssloaders)
 
 DATA_FOLDER = '../data'
 CURRENT_WORLD_RECORD = 101
 COLUMNS = c('pos', 'competition', 'name', 'country', 'club', 'yards', 'gender', 
             sprintf("yard%s",seq(1:(CURRENT_WORLD_RECORD + 1))))
+LOADING_ANIMATION = 'https://mir-s3-cdn-cf.behance.net/project_modules/disp/5d04ef14282093.56280fc4e27b3.gif'
 
 # loeme andmed sisse ja puhastame/mudime neid
 data = list.files(path=DATA_FOLDER, pattern = '*.csv', full.names = TRUE) %>% 
@@ -91,6 +93,7 @@ statisticsTab = tabPanel(
     ),
     mainPanel(
       fluidRow(
+        class = 'info-row',
         align = 'center',
         valueBoxOutput('totalYards'),
         valueBoxOutput('yardsMean'),
@@ -98,12 +101,24 @@ statisticsTab = tabPanel(
       ),
       h3('Läbitud ringide osakaal'),
       p('Eraldi on toodud välja kümne või kaheteistkümnega jaguvad, nii-öelda ümmargused ringid'),
-      plotOutput('yardsCompletedPlot'),
+      withSpinner(
+        plotOutput('yardsCompletedPlot'),
+        image = LOADING_ANIMATION,
+        image.height = 200
+      ),
       br(),
       h3('Keskmised ringiajad'),
-      plotOutput('yardAveragesPlot'),
+      withSpinner(
+        plotOutput('yardAveragesPlot'),
+        image = LOADING_ANIMATION,
+        image.height = 200
+      ),
       h3('Keskmised jooksmise-puhkamise vahekorrad'),
-      plotOutput('yardSplitPlot'),
+      withSpinner(
+        plotOutput('yardSplitPlot'),
+        image = LOADING_ANIMATION,
+        image.height = 200
+      ),
       br()
     )
   )
@@ -141,6 +156,7 @@ sourcesTab = tabPanel(
   h3('Viited'),
   p(a(href='https://github.com/karlru/backyard-ultra', 'Lähtekood', target='_blank')),
   p(a(href='https://backyardultra.com/', 'Rohkem infot backyard ultra kohta', target='_blank')),
+  p(a(href='https://www.behance.net/gallery/14282093/Running-man', 'Jooksev mehike', target='_blank')),
   p(a(href='https://docs.google.com/spreadsheets/d/1V5zS1D-LAZwKeO-ERd9gHkHjJ4nmRlt-9IKn7OgDup8/edit#gid=1600265888', 'World Team Championship 2022 andmed', target='_blank')),
   p(a(href='https://my.raceresult.com/127933/#0_D25492', 'Heavy Metal Ultra 2019 andmed', target='_blank')),
   p(a(href='https://my.raceresult.com/156449/#0_D25492', 'Heavy Metal Ultra 2020 andmed', target='_blank')),
@@ -180,7 +196,10 @@ ui <- fluidPage(
             top: 0;
             z-index: 1;
           }
-        }"
+          .info-row {
+            height: 100px;
+          }
+      }"
   )),
   
   tabsetPanel(
