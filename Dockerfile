@@ -17,13 +17,16 @@ COPY shiny-server.conf  /etc/shiny-server/shiny-server.conf
 COPY src/ /srv/shiny-server/src/
 COPY data/ /srv/shiny-server/data/
 
+# Change port in config file (a bit nasty of a solution)
+# RUN sed -i -e 's/INSERT_PORT_HERE/$PORT/g' /etc/shiny-server/shiny-server.conf
+
 # install R packages required 
 RUN R -s -f /srv/shiny-server/src/dependencies.R
 
 RUN rm /srv/shiny-server/index.html
 
-# Make the ShinyApp available at port 80
-EXPOSE 80
+# Make the ShinyApp available at port 3838
+EXPOSE 3838
 
 # Copy further configuration files into the Docker image
 COPY shiny-server.sh /usr/bin/shiny-server.sh
