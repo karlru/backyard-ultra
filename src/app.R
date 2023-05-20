@@ -8,7 +8,7 @@ library(dplyr)
 CURRENT_WORLD_RECORD = 101
 
 # loeme andmed sisse ja puhastame/mudime neid
-data = list.files(path='data', pattern = '*.csv', full.names = TRUE) %>% 
+data = list.files(path='../data', pattern = '*.csv', full.names = TRUE) %>% 
   lapply(function (f) read.csv(f, header = FALSE, sep = '\t')) %>% 
   bind_rows
 
@@ -37,9 +37,20 @@ getYardAverages = function(dataSelection) {
 }
 
 ui <- fluidPage(
-
+  
     titlePanel("Backyard ultra andmeanalüüs"),
-
+    
+    tags$style(HTML(
+      "@media screen and (min-width: 768px){
+          div.sticky {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+          }
+        }"
+    )),
+    
     tabsetPanel(
       type = 'tabs',
       tabPanel(
@@ -72,38 +83,41 @@ ui <- fluidPage(
         'Võistluste statistika',
         br(),
         sidebarLayout(
-          sidebarPanel(
-            pickerInput(
-              'competitions', 
-              'Vali võistlus', 
-              choices = unique(data$competition), 
-              options = list(`actions-box` = TRUE, `live-search` = TRUE), 
-              multiple = TRUE,
-              selected = unique(data$competition)
+          tagAppendAttributes(
+            sidebarPanel(
+              pickerInput(
+                'competitions', 
+                'Vali võistlus', 
+                choices = unique(data$competition), 
+                options = list(`actions-box` = TRUE, `live-search` = TRUE), 
+                multiple = TRUE,
+                selected = unique(data$competition)
+              ),
+              #pickerInput(
+              #  'participants', 
+              #  'Vali võistleja', 
+              #  choices = unique(data$name), 
+              #  options = list(`actions-box` = TRUE, `live-search` = TRUE), 
+              #  multiple = TRUE,
+              #  selected = unique(data$name)
+              #),
+              pickerInput(
+                'countries',
+                'Vali võistleja päritolu/klubi', 
+                choices = sort(unique(data$country)), 
+                options = list(`actions-box` = TRUE, `live-search` = TRUE), 
+                multiple = TRUE,
+                selected = unique(data$country)
+              ),
+              checkboxGroupButtons(
+                'genders',
+                'Võistleja sugu',
+                choiceNames = c('Mees', 'Naine'),
+                choiceValues = c('M', 'F'),
+                selected = c('M', 'F')
+              )
             ),
-            #pickerInput(
-            #  'participants', 
-            #  'Vali võistleja', 
-            #  choices = unique(data$name), 
-            #  options = list(`actions-box` = TRUE, `live-search` = TRUE), 
-            #  multiple = TRUE,
-            #  selected = unique(data$name)
-            #),
-            pickerInput(
-              'countries',
-              'Vali võistleja päritolu/klubi', 
-              choices = sort(unique(data$country)), 
-              options = list(`actions-box` = TRUE, `live-search` = TRUE), 
-              multiple = TRUE,
-              selected = unique(data$country)
-            ),
-            checkboxGroupButtons(
-              'genders',
-              'Võistleja sugu',
-              choiceNames = c('Mees', 'Naine'),
-              choiceValues = c('M', 'F'),
-              selected = c('M', 'F')
-            )
+            class = 'sticky'
           ),
           mainPanel(
             h3('Võistlejate osakaal läbitud ringide järgi'),
@@ -145,9 +159,9 @@ ui <- fluidPage(
         p(a(href='https://backyardultra.com/', 'Rohkem infot backyard ultra kohta', target='_blank')),
         p(a(href='https://docs.google.com/spreadsheets/d/1V5zS1D-LAZwKeO-ERd9gHkHjJ4nmRlt-9IKn7OgDup8/edit#gid=1600265888', 'World Team Championship 2022 andmed', target='_blank')),
         p(a(href='https://my.raceresult.com/127933/#0_D25492', 'Heavy Metal Ultra 2019 andmed', target='_blank')),
-        p(a(href='https://my.raceresult.com/156449/#0_D25492', 'Heaby Metal Ultra 2020 andmed', target='_blank')),
-        p(a(href='https://my.raceresult.com/176674/#0_D25492', 'Heaby Metal Ultra 2021 andmed', target='_blank')),
-        p(a(href='https://my.raceresult.com/214177/#0_D25492', 'Heaby Metal Ultra 2022 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/156449/#0_D25492', 'Heavy Metal Ultra 2020 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/176674/#0_D25492', 'Heavy Metal Ultra 2021 andmed', target='_blank')),
+        p(a(href='https://my.raceresult.com/214177/#0_D25492', 'Heavy Metal Ultra 2022 andmed', target='_blank')),
         h3('Andmed'),
         p('Tulevikus oleks väga tore, kui siia saaks ka jooksvalt toimunud ürituste andmeid lisada. Selle jaoks toon siin välja, millisel kujul on praegu kasutusel olevad andmed.'),
         p('Andmed loetakse sisse tabiga eraldatud csv failidest, kus igal real on 109 tunnust:'),
