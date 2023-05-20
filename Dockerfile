@@ -1,6 +1,8 @@
 # get shiny server plus tidyverse packages image
 FROM rocker/shiny-verse:latest
 
+ENV PORT=3838
+
 # system libraries of general use
 RUN apt-get update && apt-get install -y \
     sudo \
